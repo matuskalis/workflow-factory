@@ -1,0 +1,17 @@
+{
+  "name": "@workflow-factory/tests",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:update": "vitest run --update"
+  },
+  "devDependencies": {
+    "@workflow-factory/blocks": "workspace:*",
+    "@workflow-factory/generator": "workspace:*",
+    "@workflow-factory/recipes": "workspace:*",
+    "@workflow-factory/validate": "workspace:*",
+    "vitest": "^1.2.0"
+  }
+}

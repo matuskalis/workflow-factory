@@ -1,0 +1,261 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Recipe Generation > 'nextjs-vercel' YAML snapshot 1`] = `
+"name: Next.js to Vercel
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=\${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --token=\${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: vercel deploy --prebuilt --token=\${{ secrets.VERCEL_TOKEN }}
+    if: github.event_name == 'pull_request'
+    env:
+      VERCEL_ORG_ID: \${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: \${{ secrets.VERCEL_PROJECT_ID }}
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=\${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=\${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: vercel deploy --prebuilt --prod --token=\${{ secrets.VERCEL_TOKEN }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    env:
+      VERCEL_ORG_ID: \${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: \${{ secrets.VERCEL_PROJECT_ID }}
+permissions:
+  contents: read
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+"
+`;
+
+exports[`Recipe Generation > 'nextjs-vercel' permissions snapshot 1`] = `
+[
+  {
+    "level": "read",
+    "reason": "Required to checkout repository code",
+    "scope": "contents",
+  },
+]
+`;
+
+exports[`Recipe Generation > 'nextjs-vercel' secrets snapshot 1`] = `
+[
+  {
+    "description": "Vercel API token for deployment",
+    "example": "Go to Vercel > Settings > Tokens to create one",
+    "name": "VERCEL_TOKEN",
+    "required": true,
+  },
+  {
+    "description": "Vercel Organization/Team ID",
+    "example": "Found in .vercel/project.json after running vercel link",
+    "name": "VERCEL_ORG_ID",
+    "required": true,
+  },
+  {
+    "description": "Vercel Project ID",
+    "example": "Found in .vercel/project.json after running vercel link",
+    "name": "VERCEL_PROJECT_ID",
+    "required": true,
+  },
+]
+`;
+
+exports[`Recipe Generation > 'node-docker-ghcr' YAML snapshot 1`] = `
+"name: Node.js Docker to GHCR
+"on":
+  push:
+    branches:
+      - main
+    tags:
+      - v*.*.*
+  pull_request:
+    branches:
+      - main
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/\${{ github.repository }}
+          tags: |-
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: \${{ steps.meta.outputs.tags }}
+          labels: \${{ steps.meta.outputs.labels }}
+          cache_from: type=gha
+          cache_to: type=gha,mode=max
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  cancel-in-progress: true
+"
+`;
+
+exports[`Recipe Generation > 'node-docker-ghcr' permissions snapshot 1`] = `
+[
+  {
+    "level": "read",
+    "reason": "Required to checkout repository code",
+    "scope": "contents",
+  },
+  {
+    "level": "write",
+    "reason": "Required to push images to GHCR",
+    "scope": "packages",
+  },
+]
+`;
+
+exports[`Recipe Generation > 'node-docker-ghcr' secrets snapshot 1`] = `
+[
+  {
+    "description": "GitHub token for GHCR authentication (automatically provided)",
+    "example": "Automatically provided by GitHub Actions",
+    "name": "GITHUB_TOKEN",
+    "required": true,
+  },
+]
+`;
+
+exports[`Recipe Generation > 'static-gh-pages' YAML snapshot 1`] = `
+"name: Static Site to GitHub Pages
+"on":
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+    needs:
+      - build
+    environment: github-pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+"
+`;
+
+exports[`Recipe Generation > 'static-gh-pages' permissions snapshot 1`] = `
+[
+  {
+    "level": "read",
+    "reason": "Required to checkout repository code",
+    "scope": "contents",
+  },
+  {
+    "level": "write",
+    "reason": "Required to deploy to GitHub Pages",
+    "scope": "pages",
+  },
+  {
+    "level": "write",
+    "reason": "Required for GitHub Pages deployment verification",
+    "scope": "id-token",
+  },
+]
+`;
+
+exports[`Recipe Generation > 'static-gh-pages' secrets snapshot 1`] = `[]`;
